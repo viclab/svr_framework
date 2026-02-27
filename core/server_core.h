@@ -14,7 +14,9 @@
 namespace ua
 {
 
+#ifdef UA_HAS_PROTOBUF
 class PBService;
+#endif
 class IRouting;
 struct TransportInfo;
 class IServiceMesh;
@@ -39,9 +41,11 @@ public:
     [[nodiscard]] IServiceMesh* GetServiceMesh();
     /// 设置服务网格组件，返回旧值
     IServiceMesh* SetServiceMesh(IServiceMesh* service_mesh);
+#ifdef UA_HAS_PROTOBUF
     /// 获取 PBService 指针
     [[nodiscard]] const PBService* GetPBService() const;
     [[nodiscard]] PBService* GetPBService();
+#endif
     /// 设置调度器
     bool SetScheduler(IScheduler* new_scheduler);
 
@@ -50,8 +54,10 @@ public:
     {
         // 协程插件（nullptr 表示非协程模式）
         ICoroutine* coroutine = nullptr;
+#ifdef UA_HAS_PROTOBUF
         // PBService（nullptr 表示不使用）
         PBService* pb_service = nullptr;
+#endif
         // 单个服务最大协程数
         uint32_t max_coro_num = 0;
 
@@ -111,7 +117,9 @@ protected:
 
 private:
     [[nodiscard]] bool CheckOption(const SvrOption& option) const;
+#ifdef UA_HAS_PROTOBUF
     bool InitPBService();
+#endif
     void AdjustParam(uint64_t remain_ms, uint64_t used_ms);
 
 protected:

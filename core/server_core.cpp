@@ -13,14 +13,21 @@
 #include "interface/scheduler_interface.h"
 #include "interface/service_mesh.h"
 #include "logger.h"
+#include "transport.h"
+#ifdef UA_HAS_PROTOBUF
 #include "pb/pb_service.h"
+#endif
 #include "server_statistics.h"
 
 namespace ua
 {
 
+#ifdef UA_HAS_PROTOBUF
 // 超时定时器通道用了 PBService::MAX_TRANSPORT_NUM 保证和其它 channel 的 index 不会重叠
 static constexpr uint32_t TIMEOUT_CHANNEL_INDEX = PBService::MAX_TRANSPORT_NUM;
+#else
+static constexpr uint32_t TIMEOUT_CHANNEL_INDEX = 32;
+#endif
 
 bool ServerCore::SvrInit(const SvrOption& option)
 {
@@ -52,8 +59,10 @@ bool ServerCore::SvrInit(const SvrOption& option)
     // 定时事件处理
     timeout_decorator_.Init(option_.coroutine != nullptr);
 
+#ifdef UA_HAS_PROTOBUF
     if (!InitPBService())
         return false;
+#endif
 
     // 用户自定义初始化
     if (!OnInit())
@@ -100,6 +109,7 @@ bool ServerCore::CheckOption(const SvrOption& option) const
     return true;
 }
 
+#ifdef UA_HAS_PROTOBUF
 bool ServerCore::InitPBService()
 {
     if (option_.pb_service)
@@ -113,6 +123,7 @@ bool ServerCore::InitPBService()
     }
     return true;
 }
+#endif
 
 void ServerCore::SvrTick(uint64_t now_ms, uint64_t tick_count)
 {
@@ -298,13 +309,16 @@ const TransportInfo* ServerCore::DefaultTransportInfo() const
 
 const TransportInfo* ServerCore::FindTransportInfo(uint32_t transport_type) const
 {
+#ifdef UA_HAS_PROTOBUF
     if (option_.pb_service)
         return option_.pb_service->FindTransport(transport_type);
+#endif
     return nullptr;
 }
 
 bool ServerCore::AddTransportInfo(uint32_t transport_type, const TransportInfo& info, bool is_default)
 {
+#ifdef UA_HAS_PROTOBUF
     if (!option_.pb_service)
         return false;
     if (!option_.pb_service->AddTransport(transport_type, info))
@@ -312,6 +326,9 @@ bool ServerCore::AddTransportInfo(uint32_t transport_type, const TransportInfo& 
     if (is_default)
         default_transport_ = transport_type;
     return true;
+#else
+    return false;
+#endif
 }
 
 const IRouting* ServerCore::DefaultRouting() const
@@ -342,6 +359,7 @@ IServiceMesh* ServerCore::SetServiceMesh(IServiceMesh* service_mesh)
     return service_mesh;
 }
 
+#ifdef UA_HAS_PROTOBUF
 const PBService* ServerCore::GetPBService() const
 {
     return option_.pb_service;
@@ -351,6 +369,7 @@ PBService* ServerCore::GetPBService()
 {
     return option_.pb_service;
 }
+#endif
 
 bool ServerCore::SetScheduler(IScheduler* new_scheduler)
 {
@@ -361,8 +380,10 @@ bool ServerCore::SetScheduler(IScheduler* new_scheduler)
     }
 
     req_scheduler_ = new_scheduler;
+#ifdef UA_HAS_PROTOBUF
     if (option_.pb_service)
         option_.pb_service->SetReqScheduler(req_scheduler_);
+#endif
     timeout_decorator_.SetReqScheduler(req_scheduler_, TIMEOUT_CHANNEL_INDEX);
 
     // 指定调度器处理函数
@@ -370,8 +391,10 @@ bool ServerCore::SetScheduler(IScheduler* new_scheduler)
         uint32_t transport_type = static_cast<uint32_t>(custom_data);
         if (transport_type == TIMEOUT_CHANNEL_INDEX)
             return timeout_decorator_.DealEvent(data, len);
+#ifdef UA_HAS_PROTOBUF
         else if (option_.pb_service)
             return option_.pb_service->DealReqPkg(data, len, transport_type);
+#endif
         else
             return false;
     });
