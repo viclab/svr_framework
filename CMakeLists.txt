@@ -1,6 +1,6 @@
-# ua_framework_v2 - C++20 重写版构建配置
+# svr_framework - C++20 重写版构建配置
 cmake_minimum_required(VERSION 3.20)
-project(ua_framework_v2 VERSION 2.0.0 LANGUAGES CXX)
+project(svr_framework VERSION 2.0.0 LANGUAGES CXX)
 
 # ==================== C++20 标准 ====================
 set(CMAKE_CXX_STANDARD 20)
@@ -43,12 +43,12 @@ if(HAS_PROTOBUF)
 endif()
 
 # 构建静态库
-add_library(ua_framework_v2 STATIC ${LIB_SOURCES})
-target_include_directories(ua_framework_v2 PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
+add_library(svr_framework STATIC ${LIB_SOURCES})
+target_include_directories(svr_framework PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
 
 if(HAS_PROTOBUF)
-    target_link_libraries(ua_framework_v2 PUBLIC protobuf::libprotobuf)
-    target_compile_definitions(ua_framework_v2 PUBLIC UA_HAS_PROTOBUF=1)
+    target_link_libraries(svr_framework PUBLIC protobuf::libprotobuf)
+    target_compile_definitions(svr_framework PUBLIC UA_HAS_PROTOBUF=1)
 endif()
 
 # ==================== 单元测试 ====================
@@ -79,7 +79,7 @@ if(UA_BUILD_TESTS)
 
         add_executable(${TEST_NAME} ${TEST_SOURCE})
         target_link_libraries(${TEST_NAME} PRIVATE
-            ua_framework_v2
+            svr_framework
             GTest::gtest
             GTest::gtest_main
             pthread
